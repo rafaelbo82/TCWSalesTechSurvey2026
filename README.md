@@ -28,6 +28,12 @@ It needs a host that keeps a long-running process and a persistent disk. Serverl
 
 Serve it over HTTPS and turn off response buffering for `/api/stream` on any reverse proxy in front of it. The QR code encodes the address the presenter screen was opened on, so open `/#results` from the public URL.
 
+## Password and organizer tools
+
+Everyone enters the survey password once per browser. It defaults to `tcw2026*`; to change it, add a `SURVEY_PASSWORD` setting in Render's Environment tab. Changing it signs everyone out.
+
+At the bottom of the results screen, the **Organizer** panel unlocks with the admin key (`ADMIN_KEY` in Render's Environment tab). It can close and reopen voting, and download the responses and a use-case summary as CSV files that open in Excel. Closing voting keeps the results visible.
+
 ## Before the session
 
 Replace `https://your-host` and `$ADMIN_KEY` below.

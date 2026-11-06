@@ -4,10 +4,11 @@
  * No dependencies. Votes persist in an append-only log. Results stream over Server-Sent Events.
  *
  * Environment:
- *   PORT         listen port (default 3000)
- *   DATA_DIR     where votes are stored (default ./data). Point this at a persistent disk.
- *   ADMIN_KEY    enables CSV export and reset. Without it, those endpoints stay off.
- *   TRUST_PROXY  set to 1 behind a hosting proxy so rate limits see the real client address.
+ *   PORT             listen port (default 3000)
+ *   DATA_DIR         where votes are stored (default ./data). Point this at a persistent disk.
+ *   SURVEY_PASSWORD  password attendees enter to open the survey (default tcw2026*)
+ *   ADMIN_KEY        unlocks the organizer tools: close/reopen voting, downloads and reset. Without it, they stay off.
+ *   TRUST_PROXY      set to 1 behind a hosting proxy so rate limits and secure cookies see the real request.
  */
 const http = require("http");
 const fs = require("fs");
@@ -16,15 +17,28 @@ const crypto = require("crypto");
 
 const PORT = Number(process.env.PORT) || 3000;
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
+const PASSWORD = process.env.SURVEY_PASSWORD || "tcw2026*";
 const ADMIN_KEY = process.env.ADMIN_KEY || "";
 const TRUST_PROXY = process.env.TRUST_PROXY === "1";
 const BUDGET = 15;
 const MAX_BODY = 4096;
 const MAX_VOTERS = 20000;
 const RATE_PER_MIN = 300; // Generous, because a whole venue can share one address.
-const TYPES = new Set(["challenger", "pacesetter", "pragmatist", "controller"]);
-const LOBS = new Set(["strategic-partnership", "wag", "ria", "internal-desk", "na-institutional"]);
+const LOGIN_PER_MIN = 60;
+const LOB_NAMES = {
+  "strategic-partnership": "Strategic Partnership",
+  wag: "WAG",
+  ria: "RIA",
+  "internal-desk": "Internal Desk",
+  "na-institutional": "NA Institutional",
+};
+const TYPE_NAMES = { challenger: "Challenger", pacesetter: "Pacesetter", pragmatist: "Pragmatist", controller: "Controller" };
+const LOBS = new Set(Object.keys(LOB_NAMES));
+const TYPES = new Set(Object.keys(TYPE_NAMES));
+const CODES = [];
+for (const c of "ABCDE") for (let n = 1; n <= 5; n++) CODES.push(c + n);
 const LOG = path.join(DATA_DIR, "votes.ndjson");
+const STATE = path.join(DATA_DIR, "state.json");
 
 /* ---------- page ---------- */
 const SKELETON =
@@ -64,10 +78,36 @@ if (fs.existsSync(LOG)) {
     }
   }
 }
+let open = true;
+try {
+  open = JSON.parse(fs.readFileSync(STATE, "utf8")).open !== false;
+} catch {}
+const saveState = () => fs.writeFileSync(STATE, JSON.stringify({ open }));
+
+/* ---------- access ---------- */
+const same = (a, b) =>
+  crypto.timingSafeEqual(
+    crypto.createHash("sha256").update(String(a)).digest(),
+    crypto.createHash("sha256").update(String(b)).digest()
+  );
+// Changing the password changes this token, which signs everyone out.
+const ACCESS = crypto.createHmac("sha256", PASSWORD).update("lineup-access-v1").digest("hex");
+function cookie(req, name) {
+  const c = (req.headers.cookie || "").split(/;\s*/).find((p) => p.startsWith(name + "="));
+  try {
+    return c ? decodeURIComponent(c.slice(name.length + 1)) : "";
+  } catch {
+    return "";
+  }
+}
+const hasAccess = (req) => same(cookie(req, "lineup_access"), ACCESS);
+const isAdmin = (req) => !!ADMIN_KEY && same(req.headers["x-admin-key"] || "", ADMIN_KEY);
+const isHttps = (req) => (TRUST_PROXY ? req.headers["x-forwarded-proto"] === "https" : !!req.socket.encrypted);
 
 /* ---------- validation ---------- */
 const publicId = (token) => crypto.createHash("sha256").update(token).digest("hex").slice(0, 20);
 const validToken = (t) => typeof t === "string" && /^[A-Za-z0-9_-]{16,64}$/.test(t);
+const spentOf = (picks) => picks.reduce((s, p) => s + Number(p[1]), 0);
 
 function checkVote(body) {
   if (!validToken(body.voter)) return "This browser's voter ID isn't valid. Reload the page and try again.";
@@ -76,11 +116,11 @@ function checkVote(body) {
   if (!Array.isArray(body.picks) || !body.picks.length) return "Pick at least one use case.";
   if (body.picks.some((p) => typeof p !== "string" || !/^[A-E][1-5]$/.test(p))) return "That lineup includes an unknown use case.";
   if (new Set(body.picks).size !== body.picks.length) return "That lineup repeats a use case.";
-  const spent = body.picks.reduce((s, p) => s + Number(p[1]), 0);
+  const spent = spentOf(body.picks);
   if (spent > BUDGET) return `That lineup costs $${spent}. The budget is $${BUDGET}.`;
   return null;
 }
-const publicVote = (v) => ({ type: v.type, lob: v.lob, picks: v.picks });
+const publicVote = (v) => ({ type: v.type, lob: v.lob, picks: v.picks, at: v.at });
 
 /* ---------- live stream ---------- */
 const clients = new Set();
@@ -92,15 +132,22 @@ setInterval(() => {
   for (const c of clients) c.write(": keep-alive\n\n");
 }, 25000).unref();
 
-/* ---------- rate limit ---------- */
+/* ---------- rate limits ---------- */
 const hits = new Map();
-setInterval(() => hits.clear(), 60000).unref();
-function limited(req) {
+const loginHits = new Map();
+setInterval(() => {
+  hits.clear();
+  loginHits.clear();
+}, 60000).unref();
+function clientIp(req) {
   const fwd = TRUST_PROXY && req.headers["x-forwarded-for"];
-  const ip = fwd ? fwd.split(",").pop().trim() : req.socket.remoteAddress;
-  const n = (hits.get(ip) || 0) + 1;
-  hits.set(ip, n);
-  return n > RATE_PER_MIN;
+  return fwd ? fwd.split(",").pop().trim() : req.socket.remoteAddress;
+}
+function limited(req, map = hits, max = RATE_PER_MIN) {
+  const ip = clientIp(req);
+  const n = (map.get(ip) || 0) + 1;
+  map.set(ip, n);
+  return n > max;
 }
 
 /* ---------- helpers ---------- */
@@ -131,17 +178,12 @@ function readJson(req) {
     req.on("error", reject);
   });
 }
-function isAdmin(req) {
-  if (!ADMIN_KEY) return false;
-  const a = crypto.createHash("sha256").update(String(req.headers["x-admin-key"] || "")).digest();
-  const b = crypto.createHash("sha256").update(ADMIN_KEY).digest();
-  return crypto.timingSafeEqual(a, b);
-}
 function csvCell(v) {
   let s = String(v ?? "");
   if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; // Stops spreadsheets from running a value as a formula.
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
+const LOCKED = { error: "Enter the survey password first." };
 
 /* ---------- routes ---------- */
 const server = http.createServer(async (req, res) => {
@@ -150,9 +192,25 @@ const server = http.createServer(async (req, res) => {
   try {
     if (route === "GET /" || route === "HEAD /") return send(res, 200, HTML, "text/html; charset=utf-8");
     if (route === "GET /vendor/qrcode.js") return send(res, 200, QR_JS, "text/javascript; charset=utf-8");
-    if (route === "GET /healthz") return send(res, 200, { ok: true, responses: votes.size });
+    if (route === "GET /healthz") return send(res, 200, { ok: true });
+
+    if (route === "POST /api/login") {
+      if (limited(req, loginHits, LOGIN_PER_MIN)) return send(res, 429, { error: "Too many attempts. Wait a minute and try again." });
+      let body;
+      try {
+        body = await readJson(req);
+      } catch {
+        return send(res, 400, { error: "That request couldn't be read." });
+      }
+      if (typeof body.password !== "string" || !same(body.password, PASSWORD)) {
+        return send(res, 401, { error: "That password isn't right." });
+      }
+      const flags = `Path=/; HttpOnly; SameSite=Lax; Max-Age=1209600${isHttps(req) ? "; Secure" : ""}`;
+      return send(res, 200, { ok: true }, undefined, { "Set-Cookie": `lineup_access=${ACCESS}; ${flags}` });
+    }
 
     if (route === "GET /api/stream") {
+      if (!hasAccess(req)) return send(res, 401, LOCKED);
       res.writeHead(200, {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-store",
@@ -162,7 +220,7 @@ const server = http.createServer(async (req, res) => {
       });
       const all = {};
       for (const [id, v] of votes) all[id] = publicVote(v);
-      res.write(`retry: 3000\nevent: init\ndata: ${JSON.stringify(all)}\n\n`);
+      res.write(`retry: 3000\nevent: state\ndata: ${JSON.stringify({ open })}\n\nevent: init\ndata: ${JSON.stringify(all)}\n\n`);
       clients.add(res);
       req.on("close", () => clients.delete(res));
       return;
@@ -170,6 +228,7 @@ const server = http.createServer(async (req, res) => {
 
     if (route === "POST /api/me" || route === "POST /api/vote") {
       if (limited(req)) return send(res, 429, { error: "Too many requests. Wait a minute and try again." });
+      if (!hasAccess(req)) return send(res, 401, LOCKED);
       let body;
       try {
         body = await readJson(req);
@@ -178,9 +237,9 @@ const server = http.createServer(async (req, res) => {
       }
       if (route === "POST /api/me") {
         if (!validToken(body.voter)) return send(res, 400, { error: "Invalid voter ID." });
-        const id = publicId(body.voter);
-        return send(res, 200, { id });
+        return send(res, 200, { id: publicId(body.voter), open });
       }
+      if (!open) return send(res, 403, { error: "Voting is closed. You can still see the results." });
       const problem = checkVote(body);
       if (problem) return send(res, 400, { error: problem });
       const id = publicId(body.voter);
@@ -192,19 +251,50 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { id });
     }
 
-    if (route === "GET /api/export.csv") {
+    /* ---------- organizer ---------- */
+    if (url.pathname.startsWith("/api/admin/") || route === "GET /api/export.csv" || route === "POST /api/reset" || route === "POST /api/state") {
+      if (limited(req, loginHits, LOGIN_PER_MIN)) return send(res, 429, { error: "Too many attempts. Wait a minute and try again." });
       if (!isAdmin(req)) return send(res, 403, { error: "Admin key required." });
-      const rows = [["line_of_business", "firm_type", "picks", "spent", "submitted_at"]];
-      for (const v of votes.values()) {
-        rows.push([v.lob || "", v.type, v.picks.join(" "), v.picks.reduce((s, p) => s + Number(p[1]), 0), v.at]);
+    }
+
+    if (route === "GET /api/admin/check") return send(res, 200, { ok: true, open });
+
+    if (route === "POST /api/state") {
+      let body;
+      try {
+        body = await readJson(req);
+      } catch {
+        return send(res, 400, { error: "That request couldn't be read." });
       }
-      return send(res, 200, rows.map((r) => r.map(csvCell).join(",")).join("\r\n") + "\r\n", "text/csv; charset=utf-8", {
+      if (typeof body.open !== "boolean") return send(res, 400, { error: "Say whether voting should be open." });
+      open = body.open;
+      saveState();
+      broadcast("state", { open });
+      return send(res, 200, { open });
+    }
+
+    if (route === "GET /api/export.csv") {
+      // One row per response, plus a 1/0 column per use case so it pivots easily in Excel.
+      const rows = [["submitted_at", "line_of_business", "firm_type", "picks", "spent", ...CODES]];
+      const sorted = [...votes.values()].sort((a, b) => String(a.at).localeCompare(String(b.at)));
+      for (const v of sorted) {
+        rows.push([
+          v.at,
+          LOB_NAMES[v.lob] || "",
+          TYPE_NAMES[v.type] || v.type,
+          v.picks.join(" "),
+          spentOf(v.picks),
+          ...CODES.map((c) => (v.picks.includes(c) ? 1 : 0)),
+        ]);
+      }
+      // The byte-order mark makes Excel read the file as UTF-8.
+      const csv = "﻿" + rows.map((r) => r.map(csvCell).join(",")).join("\r\n") + "\r\n";
+      return send(res, 200, csv, "text/csv; charset=utf-8", {
         "Content-Disposition": 'attachment; filename="lineup-responses.csv"',
       });
     }
 
     if (route === "POST /api/reset") {
-      if (!isAdmin(req)) return send(res, 403, { error: "Admin key required." });
       // Archive rather than delete, so an accidental reset can be recovered.
       if (fs.existsSync(LOG)) fs.renameSync(LOG, path.join(DATA_DIR, `votes-archived-${Date.now()}.ndjson`));
       votes.clear();
@@ -221,5 +311,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Survey on http://localhost:${PORT}  (${votes.size} responses loaded, admin ${ADMIN_KEY ? "on" : "off"})`);
+  console.log(
+    `Survey on http://localhost:${PORT}  (${votes.size} responses loaded, voting ${open ? "open" : "closed"}, admin ${ADMIN_KEY ? "on" : "off"})`
+  );
 });

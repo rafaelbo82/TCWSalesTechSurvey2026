@@ -29,7 +29,7 @@ button,input{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:3px solid var(--pen);outline-offset:2px}
 .wrap{max-width:1500px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 24px}
-.sheet{background:linear-gradient(165deg,var(--paper) 0%,var(--wash-2) 45%,var(--wash-1) 75%,var(--wash-3) 100%);min-height:100%}
+.sheet{min-height:100vh;background:linear-gradient(165deg,var(--paper) 0%,var(--wash-2) 45%,var(--wash-1) 75%,var(--wash-3) 100%);min-height:100%}
 
 nav.tabs{display:flex;gap:6px;justify-content:flex-end;align-items:center;margin-bottom:8px;flex-wrap:wrap}
 nav.tabs a{padding:6px 12px;border-radius:999px;color:var(--ink);text-decoration:none;font-weight:600;font-size:.875rem}
@@ -133,6 +133,35 @@ nav.tabs a[aria-current="page"]{background:var(--ink);color:var(--paper)}
 .mine .pen path{stroke-width:3}
 .legend{font-size:.8125rem;color:var(--ink-soft);margin:8px 0 0}
 
+
+/* Password gate, organizer tools and full results */
+body.locked main,body.locked nav.tabs{display:none!important}
+.gate{max-width:420px;margin:10vh auto 0;background:var(--tile);border-radius:16px;padding:24px;display:grid;gap:12px;box-shadow:0 2px 12px color-mix(in srgb,var(--ink) 16%,transparent)}
+.gate h1{font-family:var(--display);font-size:1.5rem;font-weight:700;margin:0;line-height:1.2;text-wrap:balance}
+.gate p{margin:0;color:var(--ink-soft)}
+.gate form{display:grid;gap:8px}
+.gate label,.org label{font-weight:600}
+.gate input,.org input{border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--paper);font-size:1rem;min-width:0}
+.btn{background:var(--ink);color:var(--paper);border:0;border-radius:10px;padding:11px 16px;font-weight:700;font-family:var(--display)}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+.btn:disabled{opacity:.6}
+.err,.gate .err{color:var(--warn);font-weight:600;margin:0}
+.chip{display:inline-block;padding:4px 12px;border-radius:999px;font-size:.875rem;font-weight:700;background:var(--warn);color:var(--paper);vertical-align:middle}
+.all{margin-top:22px;display:grid;gap:14px;min-width:0}
+.all>h2{font-family:var(--display);font-weight:700;font-size:clamp(1.25rem,2.2vw,1.75rem);margin:0}
+.all>p{margin:-8px 0 0}
+.tbl{overflow-x:auto}
+.tbl table{border-collapse:collapse;width:100%;font-size:.875rem;font-variant-numeric:tabular-nums}
+.tbl th,.tbl td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap;vertical-align:top}
+.tbl th{font-size:.75rem;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);font-weight:700}
+.tbl td.t{white-space:normal;min-width:200px}
+.tbl .num{text-align:right}
+.tbl tbody tr:last-child td{border-bottom:0}
+.org{display:grid;gap:10px}
+.org .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.org p{margin:0}
+#orgState{font-weight:700}
+
 @media (max-width:760px){
   .types{grid-template-columns:repeat(2,minmax(0,1fr))}
   .types.lob{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -167,7 +196,22 @@ nav.tabs a[aria-current="page"]{background:var(--ink);color:var(--paper)}
   </nav>
   <div id="notice" class="notice" role="status" hidden></div>
 
+  <section id="gate" class="gate" hidden>
+    <h1>Transformation Starting Lineup</h1>
+    <p>Enter the survey password to continue.</p>
+    <form id="gateForm">
+      <label for="gatePw">Password</label>
+      <input id="gatePw" type="password" autocomplete="current-password" autocapitalize="none" spellcheck="false">
+      <p id="gateErr" class="err" role="alert" hidden></p>
+      <button class="btn" type="submit" id="gateBtn">Continue</button>
+    </form>
+  </section>
+
   <main id="viewVote">
+    <div id="closedVote" class="notice thanks" role="status" hidden>
+      <span>Voting is closed. Thanks for taking part.</span>
+      <a href="#results">See the results</a>
+    </div>
     <section class="step">
       <h2><b>1</b>What is your line of business?</h2>
       <p>Required. Tap one.</p>
@@ -201,6 +245,7 @@ nav.tabs a[aria-current="page"]{background:var(--ink);color:var(--paper)}
     </div>
     <div class="rhead">
       <h1>Transformation Starting Lineup: live results</h1>
+      <span id="closedChip" class="chip" hidden>Voting closed</span>
     </div>
     <div class="rlayout">
       <div class="side">
@@ -237,6 +282,40 @@ nav.tabs a[aria-current="page"]{background:var(--ink);color:var(--paper)}
         </div>
       </div>
     </div>
+
+    <section class="all" aria-labelledby="allTitle">
+      <h2 id="allTitle">All results</h2>
+      <p class="legend" id="allNote"></p>
+      <div class="panel">
+        <h3>Every use case</h3>
+        <div class="tbl"><table id="allTable"><thead></thead><tbody></tbody></table></div>
+      </div>
+      <div class="panel">
+        <h3>Every response</h3>
+        <div class="tbl"><table id="respTable"><thead><tr><th scope="col" class="num">#</th><th scope="col">Submitted</th><th scope="col">Line of business</th><th scope="col">Firm type</th><th scope="col">Picks</th><th scope="col" class="num">Spent</th></tr></thead><tbody></tbody></table></div>
+        <p class="empty" id="respEmpty">Responses appear here as they come in.</p>
+      </div>
+      <div class="panel org" id="org" hidden>
+        <h3>Organizer</h3>
+        <form id="orgLogin" class="org">
+          <label for="orgKey">Admin key</label>
+          <div class="row">
+            <input id="orgKey" type="password" autocomplete="off" spellcheck="false">
+            <button class="btn" type="submit">Unlock organizer tools</button>
+          </div>
+        </form>
+        <div id="orgTools" class="org" hidden>
+          <p id="orgState"></p>
+          <div class="row">
+            <button class="btn" type="button" id="toggleOpen">Close survey</button>
+            <button class="btn ghost" type="button" id="dlResponses">Download responses (Excel)</button>
+            <button class="btn ghost" type="button" id="dlSummary">Download use-case summary (Excel)</button>
+            <button class="btn ghost" type="button" id="orgLock">Lock organizer tools</button>
+          </div>
+        </div>
+        <p id="orgMsg" class="legend" role="status"></p>
+      </div>
+    </section>
   </main>
 </div></div>
 
@@ -310,7 +389,7 @@ const LOB_IDS = new Set(LOBS.map(l=>l.id));
 /* ---------- state ---------- */
 const S = {
   type:null, lob:null, picks:new Set(), dirty:false, submitted:false,
-  votes:{}, myId:null, canVote:true, f:{type:null,lob:null}, prev:{}, loaded:false,
+  votes:{}, myId:null, canVote:true, open:true, f:{type:null,lob:null}, prev:{}, loaded:false,
 };
 const $ = id=>document.getElementById(id);
 const el = (tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e};
@@ -323,7 +402,7 @@ function cleanVote(v){
   if(!v||!TYPE_IDS.has(v.type)||!LOB_IDS.has(v.lob)||!Array.isArray(v.picks))return null;
   const picks=[...new Set(v.picks)].filter(id=>CATALOG[id]);
   if(!picks.length||costOf(picks)>BUDGET)return null;
-  return {type:v.type,lob:v.lob,picks};
+  return {type:v.type,lob:v.lob,picks,at:typeof v.at==="string"?v.at:""};
 }
 
 /* ---------- pen circle ---------- */
@@ -415,7 +494,7 @@ function paintVote(){
     b.setAttribute("aria-pressed",String(on));
     b.classList.toggle("cant",!on&&it.cost>left);
   });
-  const ready=!!S.lob&&!!S.type&&S.picks.size>0&&S.canVote;
+  const ready=S.open&&!!S.lob&&!!S.type&&S.picks.size>0&&S.canVote;
   $("submit").setAttribute("aria-disabled",String(!ready));
   $("submit").textContent=S.votes[S.myId]?"Update my lineup":"Submit my lineup";
   if(!S.lob&&!S.type&&!S.picks.size)setHint("Choose your line of business and firm type, then spend up to $15.");
@@ -423,10 +502,12 @@ function paintVote(){
   else if(!S.type)setHint("Choose your firm type in step 2 to finish.");
   else if(!S.picks.size)setHint("Pick at least one use case.");
   else setHint(`${S.picks.size} ${S.picks.size===1?"pick":"picks"} for ${money(spent)}`+(left?`. You can still spend ${money(left)}.`:". Budget fully spent."));
+  $("closedVote").hidden=S.open;
+  if(!S.open)setHint("Voting is closed.");
 }
 
 async function submit(){
-  if(!S.canVote)return;
+  if(!S.canVote||!S.open)return;
   if(!S.lob){setHint("Choose your line of business in step 1 to finish.");$("lobs").scrollIntoView({behavior:"smooth",block:"center"});return}
   if(!S.type){setHint("Choose your firm type in step 2 to finish.");$("types").scrollIntoView({behavior:"smooth",block:"center"});return}
   if(!S.picks.size){setHint("Pick at least one use case.");return}
@@ -438,6 +519,7 @@ async function submit(){
   }catch(e){
     if(e&&e.code==="invalid_argument"){S.canVote=false;notice("Your access lets you view results but not vote. Ask the organizer for Contributor access.")}
     else if(e&&e.code==="no_identity"){S.canVote=false;notice("Sign in to claude.ai to submit a lineup from this copy of the survey.")}
+    else if(e&&e.status===401)return;
     else setHint((e&&e.message)||"Your lineup didn't send. Check your connection and tap Submit again.");
   }finally{b.disabled=false;paintVote()}
 }
@@ -540,8 +622,123 @@ function paintResults(){
     r.querySelector(".n").textContent=money(s)+(allDollars?` · ${Math.round(s/allDollars*100)}%`:"");
     r.querySelector(".track i").style.width=(allDollars?s/allDollars*100:0)+"%";
   });
+  $("closedChip").hidden=S.open;
+  paintAll(scoped,counts,n,fname);
   S.prev=counts;S.prevFilterChanged=false;
 }
+
+const lobName=id=>(LOBS.find(l=>l.id===id)||{}).name||"";
+const typeName=id=>(TYPES.find(t=>t.id===id)||{}).name||"";
+const byPicks=counts=>Object.values(CATALOG).sort((a,b)=>counts[b.id]-counts[a.id]||b.cost-a.cost||a.id.localeCompare(b.id));
+function tally(list){
+  const counts={},lob={};
+  Object.keys(CATALOG).forEach(k=>counts[k]=0);LOBS.forEach(l=>lob[l.id]={});
+  list.forEach(([,v])=>v.picks.forEach(id=>{counts[id]++;lob[v.lob][id]=(lob[v.lob][id]||0)+1}));
+  return {counts,lob};
+}
+function fmtTime(at){
+  const d=new Date(at);
+  return at&&!isNaN(d)?d.toLocaleString([],{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}):"";
+}
+function row(tbody,cells){
+  const tr=tbody.insertRow();
+  cells.forEach(([t,c])=>tr.append(el("td",c||null,String(t))));
+}
+function paintAll(scoped,counts,n,fname){
+  const tbl=$("allTable");
+  if(!tbl.tHead.rows.length){
+    const tr=tbl.tHead.insertRow();
+    ["Code","Use case","Column","Cost","Picks","Share"].concat(LOBS.map(l=>l.name),["Dollars"]).forEach((h,i)=>{
+      const th=el("th",i>=3?"num":null,h);th.scope="col";tr.append(th);
+    });
+  }
+  const {lob}=tally(scoped),body=tbl.tBodies[0];
+  body.textContent="";
+  byPicks(counts).forEach(it=>row(body,[
+    [it.id],[it.title,"t"],[PILLARS[it.pi].name,"t"],[money(it.cost),"num"],[counts[it.id],"num"],
+    [n?Math.round(counts[it.id]/n*100)+"%":"–","num"],
+    ...LOBS.map(l=>[lob[l.id][it.id]||0,"num"]),[money(counts[it.id]*it.cost),"num"],
+  ]));
+  $("allNote").textContent=`Showing ${fname}: ${n} ${n===1?"response":"responses"}. The filters above apply to these tables too. Share is the percentage of responses that picked each use case.`;
+
+  const rb=$("respTable").tBodies[0];rb.textContent="";
+  const list=scoped.slice().sort((a,b)=>b[1].at.localeCompare(a[1].at));
+  list.forEach(([,v],i)=>row(rb,[
+    [list.length-i,"num"],[fmtTime(v.at)],[lobName(v.lob)],[typeName(v.type)],
+    [v.picks.slice().sort().join(", "),"t"],[money(costOf(v.picks)),"num"],
+  ]));
+  $("respEmpty").hidden=list.length>0;
+}
+
+/* ---------- downloads (server copy) ---------- */
+function csvCell(v){
+  let s=String(v??"");
+  if(/^[=+\-@\t\r]/.test(s))s="'"+s;
+  return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
+}
+function summaryCsv(){
+  const clean=Object.values(S.votes).map(cleanVote).filter(Boolean);
+  const {counts,lob}=tally(clean.map(v=>[0,v])),n=clean.length;
+  const rows=[["code","use_case","column","cost","picks","share_of_responses"].concat(LOBS.map(l=>l.name),["dollars"])];
+  byPicks(counts).forEach(it=>rows.push([it.id,it.title,PILLARS[it.pi].name,it.cost,counts[it.id],
+    n?(counts[it.id]/n).toFixed(3):0,...LOBS.map(l=>lob[l.id][it.id]||0),counts[it.id]*it.cost]));
+  return "\uFEFF"+rows.map(r=>r.map(csvCell).join(",")).join("\r\n")+"\r\n";
+}
+function saveFile(name,data){
+  const blob=data instanceof Blob?data:new Blob([data],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);
+}
+
+/* ---------- organizer tools (server copy) ---------- */
+const org={
+  key:null,
+  init(){
+    if(!window.__SERVER_MODE__)return;
+    $("org").hidden=false;
+    try{this.key=sessionStorage.getItem("lineup_admin")}catch(e){}
+    $("orgLogin").addEventListener("submit",async e=>{
+      e.preventDefault();
+      const k=$("orgKey").value.trim();if(!k)return;
+      const r=await fetch("/api/admin/check",{headers:{"x-admin-key":k}}).catch(()=>null);
+      if(r&&r.ok){
+        this.key=k;$("orgKey").value="";
+        try{sessionStorage.setItem("lineup_admin",k)}catch(e){}
+        this.msg("");this.paint();
+      }else this.msg(r&&r.status===403?"That admin key isn't right. Copy it again from the ADMIN_KEY setting in Render.":r&&r.status===429?"Too many attempts. Wait a minute and try again.":"Couldn't reach the server. Try again.");
+    });
+    $("orgLock").addEventListener("click",()=>{this.forget();this.msg("")});
+    $("toggleOpen").addEventListener("click",()=>this.setOpen(!S.open));
+    $("dlResponses").addEventListener("click",()=>this.download());
+    $("dlSummary").addEventListener("click",()=>{saveFile("lineup-use-case-summary.csv",summaryCsv());this.msg("Downloaded lineup-use-case-summary.csv.")});
+    this.paint();
+  },
+  forget(){this.key=null;try{sessionStorage.removeItem("lineup_admin")}catch(e){};this.paint()},
+  msg(t){$("orgMsg").textContent=t},
+  paint(){
+    if(!window.__SERVER_MODE__)return;
+    $("orgLogin").hidden=!!this.key;$("orgTools").hidden=!this.key;
+    $("orgState").textContent=S.open?"Voting is open.":"Voting is closed. Everyone can still see the results.";
+    $("toggleOpen").textContent=S.open?"Close survey":"Reopen survey";
+  },
+  async call(path,opts={}){
+    const r=await fetch(path,{...opts,headers:{...(opts.headers||{}),"x-admin-key":this.key}}).catch(()=>null);
+    if(r&&r.status===403){this.forget();this.msg("That admin key no longer works. Enter it again.");return null}
+    if(!r||!r.ok){this.msg("That didn't go through. Check your connection and try again.");return null}
+    return r;
+  },
+  async setOpen(open){
+    const b=$("toggleOpen");b.disabled=true;
+    const r=await this.call("/api/state",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({open})});
+    b.disabled=false;
+    if(r){S.open=open;onData();this.msg(open?"Survey reopened. Attendees can vote again.":"Survey closed. New votes are blocked.")}
+  },
+  async download(){
+    const r=await this.call("/api/export.csv");
+    if(r){saveFile("lineup-responses.csv",await r.blob());this.msg("Downloaded lineup-responses.csv.")}
+  },
+};
 
 /* ---------- data: one interface, two backends ---------- */
 function onData(){
@@ -552,7 +749,7 @@ function onData(){
   }else if(!mine&&!S.dirty&&S.submitted){
     S.type=null;S.lob=null;S.picks=new Set();S.submitted=false;$("thanks").hidden=true;
   }
-  paintVote();paintResults();S.loaded=true;
+  paintVote();paintResults();org.paint();S.loaded=true;
 }
 function setConn(live,text){$("conn").classList.toggle("live",live);$("connText").textContent=text}
 
@@ -570,25 +767,37 @@ const serverStore={
   async post(path,body){
     const r=await fetch(path,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
     const j=await r.json().catch(()=>({}));
-    if(!r.ok)throw new Error(j.error||"Your lineup didn't send. Tap Submit to try again.");
+    if(!r.ok){const e=new Error(j.error||"Your lineup didn't send. Tap Submit to try again.");e.status=r.status;throw e}
     return j;
   },
   async start(){
     this.voter=this.token();
-    const es=new EventSource("/api/stream");
+    try{
+      const me=await this.post("/api/me",{voter:this.voter});
+      S.myId=me.id;S.open=me.open!==false;
+    }catch(e){
+      if(e.status===401){gate.show();return}
+    }
+    gate.hide();this.connect();onData();
+  },
+  connect(){
+    if(this.es)return;
+    const es=this.es=new EventSource("/api/stream");
+    es.addEventListener("state",e=>{S.open=JSON.parse(e.data).open!==false;onData()});
     es.addEventListener("init",e=>{S.votes=JSON.parse(e.data);setConn(true,"Live");onData()});
     es.addEventListener("vote",e=>{const d=JSON.parse(e.data);S.votes[d.id]=d.vote;onData()});
     es.addEventListener("reset",()=>{S.votes={};onData()});
     es.onerror=()=>setConn(false,"Reconnecting");
-    try{
-      const me=await this.post("/api/me",{voter:this.voter});
-      S.myId=me.id;
-      onData();
-    }catch(e){}
   },
   async submit(v){
-    const r=await this.post("/api/vote",{voter:this.voter,...v});
-    S.myId=r.id;S.votes[r.id]={type:v.type,lob:v.lob,picks:v.picks};onData();
+    try{
+      const r=await this.post("/api/vote",{voter:this.voter,...v});
+      S.myId=r.id;S.votes[r.id]={type:v.type,lob:v.lob,picks:v.picks,at:new Date().toISOString()};onData();
+    }catch(e){
+      if(e.status===401)gate.show();
+      if(e.status===403){S.open=false;onData()}
+      throw e;
+    }
   },
 };
 const dbStore={
@@ -621,6 +830,30 @@ const dbStore={
 };
 const store=window.__SERVER_MODE__?serverStore:dbStore;
 
+/* ---------- password gate (server copy) ---------- */
+const gate={
+  show(){
+    document.body.classList.add("locked");$("gate").hidden=false;
+    setTimeout(()=>$("gatePw").focus(),0);
+  },
+  hide(){document.body.classList.remove("locked");$("gate").hidden=true},
+};
+$("gateForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const pw=$("gatePw").value;
+  if(!pw){$("gateErr").hidden=false;$("gateErr").textContent="Enter the password.";return}
+  $("gateBtn").disabled=true;$("gateErr").hidden=true;
+  try{
+    await serverStore.post("/api/login",{password:pw});
+    $("gatePw").value="";
+    await serverStore.start();
+  }catch(err){
+    $("gateErr").hidden=false;
+    $("gateErr").textContent=err.status===401?"That password isn't right. Check it and try again.":err.status===429?"Too many attempts. Wait a minute and try again.":"Couldn't reach the survey. Check your connection and try again.";
+  }finally{$("gateBtn").disabled=false}
+});
+if(window.__SERVER_MODE__)document.body.classList.add("locked");
+
 /* ---------- routing ---------- */
 let wake=null;
 function route(){
@@ -635,6 +868,6 @@ function route(){
 }
 window.addEventListener("hashchange",route);
 
-buildVote();buildResults();route();paintVote();paintResults();
+buildVote();buildResults();org.init();route();paintVote();paintResults();
 store.start();
 </script>
