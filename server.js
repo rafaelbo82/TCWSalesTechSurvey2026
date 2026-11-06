@@ -1,6 +1,6 @@
 "use strict";
 /*
- * Transformation Starting Lineup: live survey server.
+ * Distribution Transformation Roadmap: live survey server.
  * No dependencies. Votes persist in an append-only log. Results stream over Server-Sent Events.
  *
  * Environment:
