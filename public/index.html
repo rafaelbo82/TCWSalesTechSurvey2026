@@ -1,0 +1,640 @@
+<title>Transformation Starting Lineup</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Lexend:wght@500;600;700&display=swap">
+<style>
+/* Layout: the printed card, kept as a 6-column bingo board. Phones reflow it into one list per pillar. A hand-drawn pen circle marks every pick. */
+:root{
+  --ink:#1c1b66;--ink-soft:#4e4d88;--paper:#eef1fb;--tile:#ffffff;--line:#c9cdea;
+  --band-a:#43309f;--band-b:#25175f;--on-band:#ffffff;--on-band-soft:#dcd7f6;
+  --pen:#2b30bd;--wash-1:#d9d1f2;--wash-2:#cfe7f7;--wash-3:#c9eae1;
+  --heat:#3a2a96;--on-heat:#ffffff;--warn:#a8261c;--good:#0b7358;
+  --t-challenger:#8d7cc3;--t-pacesetter:#3f9fc9;--t-pragmatist:#369488;--t-controller:#c9a227;
+  --display:"Lexend","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --body:"Figtree","Avenir Next","Segoe UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ink:#ecebff;--ink-soft:#b5b4e0;--paper:#12113a;--tile:#1f1e50;--line:#3a3973;
+  --band-a:#4a37ab;--band-b:#2d1f78;--on-band:#ffffff;--on-band-soft:#dcd7f6;
+  --pen:#9ea8ff;--wash-1:#1c1750;--wash-2:#14264f;--wash-3:#123a44;
+  --heat:#a79dff;--on-heat:#12113a;--warn:#ff9c90;--good:#62d6b4;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --ink:#ecebff;--ink-soft:#b5b4e0;--paper:#12113a;--tile:#1f1e50;--line:#3a3973;
+  --band-a:#4a37ab;--band-b:#2d1f78;--on-band:#ffffff;--on-band-soft:#dcd7f6;
+  --pen:#9ea8ff;--wash-1:#1c1750;--wash-2:#14264f;--wash-3:#123a44;
+  --heat:#a79dff;--on-heat:#12113a;--warn:#ff9c90;--good:#62d6b4;color-scheme:dark}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.4}
+*{box-sizing:border-box}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--pen);outline-offset:2px}
+.wrap{max-width:1500px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 24px}
+.sheet{background:linear-gradient(165deg,var(--paper) 0%,var(--wash-2) 45%,var(--wash-1) 75%,var(--wash-3) 100%);min-height:100%}
+
+nav.tabs{display:flex;gap:6px;justify-content:flex-end;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+nav.tabs a{padding:6px 12px;border-radius:999px;color:var(--ink);text-decoration:none;font-weight:600;font-size:.875rem}
+nav.tabs a[aria-current="page"]{background:var(--ink);color:var(--paper)}
+#conn{margin-right:auto;font-size:.8125rem;color:var(--ink-soft);display:flex;align-items:center;gap:6px}
+#conn i{width:8px;height:8px;border-radius:50%;background:var(--ink-soft);display:inline-block}
+#conn.live i{background:var(--good)}
+
+.notice{border:1.5px solid var(--warn);color:var(--warn);background:var(--tile);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-weight:600;font-size:.9375rem}
+.thanks{border-color:var(--good);color:var(--good);display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:space-between}
+.thanks a{color:inherit}
+
+
+.step{display:grid;justify-items:center;text-align:center;gap:6px;margin-bottom:14px}
+.step h2{font-family:var(--display);font-weight:700;font-size:clamp(1.3rem,3vw,2.1rem);line-height:1.15;margin:0;display:flex;gap:10px;align-items:flex-start;justify-content:center;text-wrap:balance;text-align:left}
+.step h2 b{flex:none;width:1.25em;height:1.25em;margin-top:-.05em;border-radius:50%;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-size:.75em;font-weight:700}
+.step p{margin:0;max-width:62ch;font-size:clamp(.95rem,1.5vw,1.125rem);text-wrap:balance}
+.step p.ask{font-family:var(--display);font-weight:600;margin-top:4px}
+
+/* Firm types */
+.types{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;max-width:980px;margin:0 auto 26px}
+.type{position:relative;background:var(--tile);border:3px solid var(--tc);border-radius:6px;padding:10px 8px;text-align:center;box-shadow:0 2px 0 color-mix(in srgb,var(--tc) 40%,transparent)}
+.type strong{display:block;font-family:var(--display);font-weight:600;font-size:clamp(1rem,1.7vw,1.3rem);line-height:1.2}
+.type span.sub{font-size:.875rem;color:var(--ink-soft)}
+.types.lob{grid-template-columns:repeat(5,minmax(0,1fr));max-width:1100px}
+.types.lob .type{display:grid;place-items:center;min-height:58px}
+
+/* Board */
+.board{display:grid;grid-template-columns:minmax(118px,.92fr) repeat(5,minmax(0,1fr));gap:10px}
+.corner{grid-column:1;grid-row:1;background:var(--tile);border:4px solid var(--ink);border-radius:14px;display:grid;place-items:center;align-content:center;padding:8px;min-height:92px}
+.corner b{font-family:var(--display);font-size:clamp(1.9rem,3.8vw,3.25rem);font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.corner span{font-size:.75rem;color:var(--ink-soft);font-weight:600}
+.pillar{grid-column:var(--c);grid-row:1;background:linear-gradient(170deg,var(--band-a),var(--band-b));color:var(--on-band);border-radius:12px;padding:12px 10px;display:grid;align-content:center;text-align:center;font-family:var(--display);font-weight:500;font-size:clamp(.9rem,1.5vw,1.2rem);line-height:1.2;text-wrap:balance;min-width:0}
+.pillar em{font-style:normal;font-size:.72em;color:var(--on-band-soft);letter-spacing:.08em;margin-bottom:4px}
+.level{grid-column:1;grid-row:var(--r);background:linear-gradient(170deg,var(--band-a),var(--band-b));color:var(--on-band);border-radius:12px;padding:10px 8px;display:grid;align-content:center;text-align:center;min-width:0}
+.level b{font-family:var(--display);font-size:clamp(1.5rem,3vw,2.5rem);font-weight:700;line-height:1}
+.level strong{font-family:var(--display);font-weight:500;font-size:clamp(.8rem,1.25vw,1.1rem)}
+.level span{font-size:.75rem;color:var(--on-band-soft);line-height:1.25;margin-top:4px}
+.tile{position:relative;grid-column:var(--c);grid-row:var(--r);background:var(--tile);color:var(--ink);border:1.5px solid transparent;border-radius:12px;padding:20px 8px 12px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-width:0;box-shadow:0 1px 3px color-mix(in srgb,var(--ink) 18%,transparent);transition:opacity .15s,transform .1s}
+.tile:hover{border-color:var(--pen)}
+.tile:active{transform:scale(.985)}
+.tile .code{position:absolute;top:6px;left:9px;font-size:.6875rem;color:var(--ink-soft);font-weight:600}
+.tile strong{font-family:var(--display);font-weight:600;font-size:clamp(.8125rem,1.2vw,1.0625rem);line-height:1.2;overflow-wrap:break-word;text-wrap:balance}
+.tile .eg{font-size:clamp(.71875rem,.95vw,.8125rem);color:var(--ink-soft);line-height:1.25;text-wrap:pretty}
+.tile .price{display:none}
+.tile.cant:not([aria-pressed="true"]){opacity:.5}
+.tile.nope{animation:nope .3s}
+@keyframes nope{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+
+/* The pen circle */
+.pen{position:absolute;inset:-5px;width:calc(100% + 10px);height:calc(100% + 10px);overflow:visible;pointer-events:none;opacity:0}
+.pen path{fill:none;stroke:var(--pen);stroke-width:2.5;stroke-linecap:round;vector-effect:non-scaling-stroke;stroke-dasharray:2400;stroke-dashoffset:2400;transition:stroke-dashoffset .45s ease-out}
+[aria-pressed="true"]>.pen,.mine>.pen{opacity:1}
+[aria-pressed="true"]>.pen path,.mine>.pen path{stroke-dashoffset:0}
+
+/* Budget bar */
+.bar{position:sticky;bottom:0;z-index:5;margin-top:14px;background:var(--ink);color:var(--paper);border-radius:14px;padding:10px 14px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.bar .left{font-family:var(--display);font-weight:700;font-size:1.375rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bar #hint{flex:1;min-width:150px;font-size:.875rem;line-height:1.25}
+.bar button{background:var(--paper);color:var(--ink);border:0;border-radius:10px;padding:11px 18px;font-weight:700;font-family:var(--display)}
+.bar button[aria-disabled="true"]{opacity:.6}
+
+/* Results */
+.rhead{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+.rhead h1{font-family:var(--display);font-weight:700;font-size:clamp(1.4rem,2.6vw,2.4rem);margin:0;line-height:1.15;text-wrap:balance}
+.rlayout{display:grid;grid-template-columns:minmax(230px,280px) minmax(0,1fr);gap:18px;align-items:start}
+.side{display:grid;gap:14px;min-width:0}
+.panel{background:var(--tile);border-radius:14px;padding:14px;min-width:0}
+.panel h3{font-family:var(--display);font-weight:600;font-size:1rem;margin:0 0 10px}
+.qr{text-align:center}
+.qr .code{background:#ffffff;padding:10px;border-radius:8px;width:min(100%,220px);margin:0 auto 8px;aspect-ratio:1/1;max-width:100%}
+.qr .code svg{display:block;width:100%;height:100%}
+.qr p{margin:0;font-family:var(--display);font-weight:600}
+.qr small{display:block;color:var(--warn);margin-top:6px;line-height:1.25}
+.count{display:flex;align-items:baseline;gap:10px}
+.count b{font-family:var(--display);font-size:clamp(2.5rem,5vw,4rem);line-height:1;font-weight:700;font-variant-numeric:tabular-nums}
+.fbtn{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;background:none;border:0;border-radius:8px;padding:6px;text-align:left}
+.fbtn:hover{background:color-mix(in srgb,var(--ink) 7%,transparent)}
+.fbtn[aria-pressed="true"]{background:color-mix(in srgb,var(--ink) 12%,transparent);font-weight:700}
+.fbtn span:nth-child(2){font-variant-numeric:tabular-nums}
+.track{grid-column:1/-1;height:7px;background:color-mix(in srgb,var(--ink) 10%,transparent);border-radius:4px;overflow:hidden}
+.track i{display:block;height:100%;background:var(--tc,var(--heat));border-radius:4px;transition:width .4s}
+.rbelow{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:14px;margin-top:14px}
+.rank{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.rank li{display:grid;grid-template-columns:2.4em minmax(0,1fr) auto;gap:2px 8px;align-items:baseline}
+.rank .c{font-size:.8125rem;color:var(--ink-soft);font-weight:700}
+.rank .n{font-weight:700;font-variant-numeric:tabular-nums}
+.rank .track{grid-column:2/-1}
+.rank li:nth-child(n+6){display:none}
+.empty{color:var(--ink-soft);margin:0}
+.heat .tile{cursor:default;padding:18px 6px 10px;--v:0;background:color-mix(in srgb,var(--heat) calc(var(--v)*100%),var(--tile))}
+.heat .tile:hover{border-color:transparent}
+.heat .tile:active{transform:none}
+.heat .tile strong{font-size:clamp(.72rem,.95vw,.95rem);font-weight:500}
+.heat .tile .num{font-family:var(--display);font-weight:700;font-size:clamp(1.2rem,2.1vw,2.1rem);line-height:1.05;font-variant-numeric:tabular-nums}
+.heat .tile .code{color:var(--ink)}
+.heat .tile .pct{font-size:.75rem;color:var(--ink);font-variant-numeric:tabular-nums}
+.heat .tile.hot,.heat .tile.hot .code,.heat .tile.hot .pct{color:var(--on-heat)}
+.heat .tile.flash{animation:flash .9s ease-out}
+@keyframes flash{0%{box-shadow:0 0 0 5px var(--pen)}100%{box-shadow:0 0 0 0 transparent}}
+.mine .pen path{stroke-width:3}
+.legend{font-size:.8125rem;color:var(--ink-soft);margin:8px 0 0}
+
+@media (max-width:760px){
+  .types{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .types.lob{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .types.lob .type:last-child{grid-column:1/-1}
+  .board{display:flex;flex-direction:column;gap:8px}
+  .corner,.level{display:none}
+  .pillar{padding:10px;margin-top:10px;font-size:1.0625rem;text-align:left;display:block}
+  .pillar em{display:inline;margin:0 8px 0 0}
+  .tile{display:grid;grid-template-columns:minmax(0,1fr) auto;text-align:left;justify-items:start;padding:12px;column-gap:10px}
+  .tile .code{position:static;grid-column:1;font-size:.75rem}
+  .tile strong{grid-column:1;font-size:1rem}
+  .tile .eg{grid-column:1;font-size:.8125rem}
+  .tile .price{display:block;grid-column:2;grid-row:1/span 3;align-self:center;font-family:var(--display);font-weight:700;font-size:1.25rem;font-variant-numeric:tabular-nums}
+  .rlayout,.rbelow{grid-template-columns:minmax(0,1fr)}
+  .heat,.heat-legend{display:none}
+  .qrpanel{display:none}
+  .rank li:nth-child(n+6){display:grid}
+  .bar{justify-content:space-between}
+  .bar #hint{order:3;flex-basis:100%}
+}
+@media (prefers-reduced-motion:reduce){
+  .pen path,.track i,.tile{transition:none}
+  .tile.nope,.heat .tile.flash{animation:none}
+}
+</style>
+
+<div class="sheet"><div class="wrap">
+  <nav class="tabs" aria-label="Views">
+    <span id="conn"><i></i><span id="connText">Connecting</span></span>
+    <a href="#vote" id="tabVote">My lineup</a>
+    <a href="#results" id="tabResults">Live results</a>
+  </nav>
+  <div id="notice" class="notice" role="status" hidden></div>
+
+  <main id="viewVote">
+    <section class="step">
+      <h2><b>1</b>What is your line of business?</h2>
+      <p>Required. Tap one.</p>
+    </section>
+    <div class="types lob" id="lobs" role="group" aria-label="Line of business"></div>
+
+    <section class="step">
+      <h2><b>2</b>What kind of agentic firm are you?</h2>
+      <p>Tap the answer that best matches your firm.</p>
+    </section>
+    <div class="types" id="types" role="group" aria-label="Firm type"></div>
+
+    <section class="step">
+      <h2><b>3</b>Pick Your Transformation Starting Lineup</h2>
+      <p>You've got <strong>$15</strong> to spend. Tap the use cases you think will drive the most impact for your firm, without going over budget.</p>
+      <p class="ask">Can you build your ultimate solution?</p>
+    </section>
+    <div class="board" id="board"></div>
+
+    <div class="bar">
+      <span class="left" id="left" aria-live="polite">$15 left</span>
+      <span id="hint" aria-live="polite"></span>
+      <button type="button" id="submit">Submit my lineup</button>
+    </div>
+  </main>
+
+  <main id="viewResults" hidden>
+    <div id="thanks" class="notice thanks" role="status" hidden>
+      <span>Your lineup is in.</span>
+      <a href="#vote">Change my picks</a>
+    </div>
+    <div class="rhead">
+      <h1>Transformation Starting Lineup: live results</h1>
+    </div>
+    <div class="rlayout">
+      <div class="side">
+        <div class="panel qr qrpanel">
+          <div class="code" id="qr" role="img" aria-label="QR code that opens the survey"></div>
+          <p>Scan to vote</p>
+          <small id="qrNote" hidden></small>
+        </div>
+        <div class="panel">
+          <div class="count"><b id="count">0</b><span id="countLabel">responses</span></div>
+        </div>
+        <div class="panel">
+          <h3>Line of business</h3>
+          <div id="lobFilters" role="group" aria-label="Filter results by line of business"></div>
+        </div>
+        <div class="panel">
+          <h3>Firm type</h3>
+          <div id="filters" role="group" aria-label="Filter results by firm type"></div>
+        </div>
+      </div>
+      <div style="min-width:0">
+        <div class="board heat" id="heat"></div>
+        <p class="legend heat-legend" id="legend"></p>
+        <div class="rbelow">
+          <div class="panel">
+            <h3>Most-picked use cases</h3>
+            <ol class="rank" id="rank"></ol>
+            <p class="empty" id="rankEmpty">Picks appear here as soon as the first lineup comes in.</p>
+          </div>
+          <div class="panel">
+            <h3>Where the dollars went</h3>
+            <div id="spend" style="display:grid;gap:8px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>
+"use strict";
+/* The public link of the Claude-hosted copy. The deployed server uses its own address instead. */
+const SHARE_URL = "https://claude.ai/artifact/6N3SwfTmrePPMezSZTqxes";
+const BUDGET = 15;
+
+const TYPES = [
+  {id:"challenger",icon:"💡",name:"Challenger",sub:"Stretch to differentiate",color:"var(--t-challenger)"},
+  {id:"pacesetter",icon:"🏁",name:"Pacesetter",sub:"Lead and scale",color:"var(--t-pacesetter)"},
+  {id:"pragmatist",icon:"⚖️",name:"Pragmatist",sub:"Protect the core",color:"var(--t-pragmatist)"},
+  {id:"controller",icon:"📋",name:"Controller",sub:"Govern, then grow",color:"var(--t-controller)"},
+];
+const LEVELS = [
+  {cost:5,name:"Transformative",sub:"Redefine what's possible"},
+  {cost:4,name:"Innovative",sub:"Become an AI-driven enterprise"},
+  {cost:3,name:"Strategic",sub:"Drive efficiency and scale"},
+  {cost:2,name:"Foundational",sub:"Connect data, teams and processes"},
+  {cost:1,name:"Tactical",sub:"Deploy quick, targeted fixes"},
+];
+const PILLARS = [
+  {id:"A",name:"Unify Your Client Data",items:{
+    5:["Trust your data","e.g., data quality monitoring, certified definitions and lineage, so every report and AI tool uses the same numbers"],
+    4:["Client 360 view","e.g., retail and institutional relationships in one view: meetings, content engagement, holdings, RFPs, service requests"],
+    3:["Connect sales and flows data","e.g., retail platform and intermediary flows, plus institutional mandates and AUM, loaded into CRM"],
+    2:["Enrich with third-party data","e.g., advisor and home-office profiles for retail, consultant and allocator profiles for institutional"],
+    1:["Clean up CRM data","e.g., remove duplicates, fix ownership, map advisor teams and institutional client hierarchies"]}},
+  {id:"B",name:"Personalize Marketing at Scale",items:{
+    5:["Personalized journeys at scale","e.g., 1:1 content across email, web and events, triggered by client behavior"],
+    4:["Account-based marketing and attribution","e.g., coordinated campaigns to consultants and plan sponsors, tied to meetings, pipeline and flows"],
+    3:["Distributed marketing","e.g., sales teams send pre-approved, personalized content from CRM"],
+    2:["Marketing automation and lead scoring","e.g., advisor nurture tracks, webinar follow-up"],
+    1:["Branded email templates","e.g., compliant templates, subscription preferences"]}},
+  {id:"C",name:"Put AI to Work",items:{
+    5:["Autonomous sales and marketing agents","e.g., qualify inbound leads, answer common questions, book meetings around the clock"],
+    4:["Next-best-action recommendations","e.g., who to call and which fund to discuss, based on flows, intent and engagement"],
+    3:["AI content assistant with compliance pre-check","e.g., draft commentary and fund updates, flag disclosure issues before review"],
+    2:["AI meeting prep briefs","e.g., holdings, recent interactions and news before each meeting"],
+    1:["AI call and email summaries","e.g., log notes to CRM, draft follow-ups"]}},
+  {id:"D",name:"Empower Retail & Institutional Sales",items:{
+    5:["Real-time sales performance intelligence","e.g., live pipeline, flows and goals across retail and institutional, with AI-flagged trends and outliers"],
+    4:["Proposal and due diligence automation","e.g., institutional RFPs and DDQs, retail home-office and platform due diligence requests"],
+    3:["Territory and coverage planning","e.g., segment advisors and home offices for retail, prioritize consultants and plan sponsors for institutional"],
+    2:["Self-service sales reporting","e.g., build and schedule reports by channel, territory, product and client type"],
+    1:["Standard sales dashboards","e.g., activity, meetings and flows by wholesaler and institutional team"]}},
+  {id:"E",name:"Deepen Client Relationships",items:{
+    5:["Proactive relationship management","e.g., relationship health scores and automated contact plans for key clients"],
+    4:["Retention risk alerts","e.g., redemption signals, falling engagement, relationship changes"],
+    3:["Client and advisor portal","e.g., fund documents, performance and insights in one place"],
+    2:["Client service request tracking","e.g., requests from advisors, consultants and plan sponsors"],
+    1:["Event and webinar management","e.g., registration and attendance recorded in CRM"]}},
+];
+const CATALOG = {};
+PILLARS.forEach((p,pi)=>LEVELS.forEach((l,li)=>{
+  const [title,eg]=p.items[l.cost];
+  CATALOG[p.id+l.cost]={id:p.id+l.cost,pillar:p.id,pi,li,cost:l.cost,title,eg};
+}));
+const TYPE_IDS = new Set(TYPES.map(t=>t.id));
+const LOBS = [
+  {id:"strategic-partnership",name:"Strategic Partnership"},
+  {id:"wag",name:"WAG"},
+  {id:"ria",name:"RIA"},
+  {id:"internal-desk",name:"Internal Desk"},
+  {id:"na-institutional",name:"NA Institutional"},
+];
+const LOB_IDS = new Set(LOBS.map(l=>l.id));
+
+/* ---------- state ---------- */
+const S = {
+  type:null, lob:null, picks:new Set(), dirty:false, submitted:false,
+  votes:{}, myId:null, canVote:true, f:{type:null,lob:null}, prev:{}, loaded:false,
+};
+const $ = id=>document.getElementById(id);
+const el = (tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e};
+const costOf = picks=>[...picks].reduce((s,id)=>s+CATALOG[id].cost,0);
+const money = n=>"$"+n;
+const soft = s=>s.replace(/\//g,"/\u200b");
+
+/* Every vote is re-checked before counting, so a malformed one can't skew the tally. */
+function cleanVote(v){
+  if(!v||!TYPE_IDS.has(v.type)||!LOB_IDS.has(v.lob)||!Array.isArray(v.picks))return null;
+  const picks=[...new Set(v.picks)].filter(id=>CATALOG[id]);
+  if(!picks.length||costOf(picks)>BUDGET)return null;
+  return {type:v.type,lob:v.lob,picks};
+}
+
+/* ---------- pen circle ---------- */
+function pen(){
+  const ns="http://www.w3.org/2000/svg";
+  const s=document.createElementNS(ns,"svg");
+  s.setAttribute("class","pen");s.setAttribute("viewBox","0 0 100 100");
+  s.setAttribute("preserveAspectRatio","none");s.setAttribute("aria-hidden","true");
+  const p=document.createElementNS(ns,"path");
+  p.setAttribute("d","M5 90C0 66 0 26 6 11C14 0 38 1 56 1C76 1 93 2 97 13C101 32 101 66 96 87C90 99 62 99 40 99C24 99 7 97 2 76");
+  s.append(p);return s;
+}
+
+/* ---------- build ---------- */
+function buildHeaders(board){
+  const corner=el("div","corner");
+  corner.append(el("b",null,money(BUDGET)));
+  board.append(corner);
+  return corner;
+}
+function buildBoard(board,makeTile){
+  const corner=buildHeaders(board);
+  LEVELS.forEach((l,li)=>{
+    const d=el("div","level");d.style.setProperty("--r",li+2);
+    d.append(el("b",null,money(l.cost)),el("strong",null,l.name),el("span",null,l.sub));
+    board.append(d);
+  });
+  PILLARS.forEach((p,pi)=>{
+    const h=el("div","pillar");h.style.setProperty("--c",pi+2);
+    h.append(el("em",null,p.id),document.createTextNode(p.name));
+    board.append(h);
+    LEVELS.forEach(l=>board.append(makeTile(CATALOG[p.id+l.cost])));
+  });
+  return corner;
+}
+function place(t,it){t.style.setProperty("--c",it.pi+2);t.style.setProperty("--r",it.li+2)}
+
+function buildVote(){
+  LOBS.forEach(l=>{
+    const b=el("button","type");b.type="button";b.dataset.lob=l.id;
+    b.style.setProperty("--tc","var(--band-a)");b.setAttribute("aria-pressed","false");
+    b.append(el("strong",null,l.name),pen());
+    b.addEventListener("click",()=>{S.lob=S.lob===l.id?null:l.id;S.dirty=true;paintVote()});
+    $("lobs").append(b);
+  });
+  TYPES.forEach(t=>{
+    const b=el("button","type");b.type="button";b.dataset.type=t.id;
+    b.style.setProperty("--tc",t.color);b.setAttribute("aria-pressed","false");
+    b.append(el("strong",null,t.icon+" "+t.name),el("span","sub",t.sub),pen());
+    b.addEventListener("click",()=>{S.type=S.type===t.id?null:t.id;S.dirty=true;paintVote()});
+    $("types").append(b);
+  });
+  const corner=buildBoard($("board"),it=>{
+    const b=el("button","tile");b.type="button";b.dataset.id=it.id;place(b,it);
+    b.setAttribute("aria-pressed","false");
+    b.setAttribute("aria-label",`${it.id}, ${it.title}, ${money(it.cost)}`);
+    b.append(el("span","code",it.id),el("strong",null,soft(it.title)));
+    if(it.eg)b.append(el("span","eg","("+it.eg+")"));
+    b.append(el("span","price",money(it.cost)),pen());
+    b.addEventListener("click",()=>togglePick(it,b));
+    return b;
+  });
+  corner.querySelector("b").id="cornerLeft";
+  corner.append(el("span",null,"left to spend"));
+  $("submit").addEventListener("click",submit);
+}
+function togglePick(it,btn){
+  if(S.picks.has(it.id)){S.picks.delete(it.id)}
+  else{
+    const left=BUDGET-costOf(S.picks);
+    if(it.cost>left){
+      setHint(`${it.id} costs ${money(it.cost)} and you have ${money(left)} left. Remove a pick first.`,true);
+      btn.classList.remove("nope");void btn.offsetWidth;btn.classList.add("nope");
+      return;
+    }
+    S.picks.add(it.id);
+  }
+  S.dirty=true;paintVote();
+}
+function setHint(t){$("hint").textContent=t}
+function paintVote(){
+  const spent=costOf(S.picks),left=BUDGET-spent;
+  $("left").textContent=money(left)+" left";
+  const c=$("cornerLeft");if(c)c.textContent=money(left);
+  document.querySelectorAll("#lobs .type").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.lob===S.lob)));
+  document.querySelectorAll("#types .type").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.type===S.type)));
+  document.querySelectorAll("#board .tile").forEach(b=>{
+    const it=CATALOG[b.dataset.id],on=S.picks.has(it.id);
+    b.setAttribute("aria-pressed",String(on));
+    b.classList.toggle("cant",!on&&it.cost>left);
+  });
+  const ready=!!S.lob&&!!S.type&&S.picks.size>0&&S.canVote;
+  $("submit").setAttribute("aria-disabled",String(!ready));
+  $("submit").textContent=S.votes[S.myId]?"Update my lineup":"Submit my lineup";
+  if(!S.lob&&!S.type&&!S.picks.size)setHint("Choose your line of business and firm type, then spend up to $15.");
+  else if(!S.lob)setHint("Choose your line of business in step 1 to finish.");
+  else if(!S.type)setHint("Choose your firm type in step 2 to finish.");
+  else if(!S.picks.size)setHint("Pick at least one use case.");
+  else setHint(`${S.picks.size} ${S.picks.size===1?"pick":"picks"} for ${money(spent)}`+(left?`. You can still spend ${money(left)}.`:". Budget fully spent."));
+}
+
+async function submit(){
+  if(!S.canVote)return;
+  if(!S.lob){setHint("Choose your line of business in step 1 to finish.");$("lobs").scrollIntoView({behavior:"smooth",block:"center"});return}
+  if(!S.type){setHint("Choose your firm type in step 2 to finish.");$("types").scrollIntoView({behavior:"smooth",block:"center"});return}
+  if(!S.picks.size){setHint("Pick at least one use case.");return}
+  const b=$("submit");b.disabled=true;b.textContent="Sending";
+  try{
+    await store.submit({type:S.type,lob:S.lob,picks:[...S.picks]});
+    S.dirty=false;S.submitted=true;$("thanks").hidden=false;
+    location.hash="results";route();
+  }catch(e){
+    if(e&&e.code==="invalid_argument"){S.canVote=false;notice("Your access lets you view results but not vote. Ask the organizer for Contributor access.")}
+    else if(e&&e.code==="no_identity"){S.canVote=false;notice("Sign in to claude.ai to submit a lineup from this copy of the survey.")}
+    else setHint((e&&e.message)||"Your lineup didn't send. Check your connection and tap Submit again.");
+  }finally{b.disabled=false;paintVote()}
+}
+function notice(t){const n=$("notice");n.textContent=t;n.hidden=!t}
+
+/* ---------- results ---------- */
+function buildResults(){
+  buildBoard($("heat"),it=>{
+    const d=el("div","tile");d.dataset.id=it.id;place(d,it);
+    d.append(el("span","code",it.id),el("span","num","0"),el("strong",null,soft(it.title)),el("span","pct",""),pen());
+    return d;
+  });
+  buildFilters("lobFilters","lob","All lines of business",LOBS);
+  buildFilters("filters","type","All firm types",TYPES);
+  PILLARS.forEach(p=>{
+    const r=el("div");r.dataset.p=p.id;
+    r.style.cssText="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 8px";
+    r.append(el("span",null,p.name),el("span","n","$0"));
+    r.lastChild.style.fontWeight="700";r.lastChild.style.fontVariantNumeric="tabular-nums";
+    const tr=el("span","track");tr.append(el("i"));r.append(tr);
+    $("spend").append(r);
+  });
+  renderQR();
+}
+function buildFilters(box,key,allName,list){
+  [{id:null,name:allName}].concat(list).forEach(t=>{
+    const b=el("button","fbtn");b.type="button";b.dataset.f=t.id||"";
+    b.setAttribute("aria-pressed",String(!t.id));
+    if(t.color)b.style.setProperty("--tc",t.color);
+    b.append(el("span",null,(t.icon?t.icon+" ":"")+t.name),el("span","n","0"));
+    const tr=el("span","track");tr.append(el("i"));b.append(tr);
+    b.addEventListener("click",()=>{S.prevFilterChanged=true;S.f[key]=t.id;paintResults()});
+    $(box).append(b);
+  });
+}
+function renderQR(){
+  const url=window.__SERVER_MODE__?location.origin+"/":SHARE_URL;
+  const box=$("qr"),note=$("qrNote");
+  if(!url||typeof qrcode==="undefined"){box.parentElement.hidden=true;return}
+  const q=qrcode(0,"M");q.addData(url);q.make();
+  box.innerHTML=q.createSvgTag({cellSize:4,margin:0,scalable:true});
+  if(/localhost|127\.0\.0\.1/.test(location.hostname)){
+    note.hidden=false;note.textContent="This code points to this computer. Phones need the deployed address.";
+  }
+}
+function paintResults(){
+  const clean=Object.entries(S.votes).map(([id,v])=>[id,cleanVote(v)]).filter(([,v])=>v);
+  const total=clean.length;
+  const match=(v,skip)=>(skip==="type"||!S.f.type||v.type===S.f.type)&&(skip==="lob"||!S.f.lob||v.lob===S.f.lob);
+  const scoped=clean.filter(([,v])=>match(v));
+  const n=scoped.length;
+  const counts={};Object.keys(CATALOG).forEach(k=>counts[k]=0);
+  scoped.forEach(([,v])=>v.picks.forEach(id=>counts[id]++));
+  const max=Math.max(1,...Object.values(counts));
+  const mine=cleanVote(S.votes[S.myId]);
+
+  $("count").textContent=total;
+  $("countLabel").textContent=total===1?"response":"responses";
+  [["filters","type"],["lobFilters","lob"]].forEach(([box,key])=>{
+    const base=clean.filter(([,v])=>match(v,key)),bn=base.length;
+    document.querySelectorAll("#"+box+" .fbtn").forEach(b=>{
+      const f=b.dataset.f||null,c=f?base.filter(([,v])=>v[key]===f).length:bn;
+      b.setAttribute("aria-pressed",String(f===S.f[key]));
+      b.querySelector(".n").textContent=c;
+      b.querySelector(".track i").style.width=(bn?c/bn*100:0)+"%";
+    });
+  });
+  document.querySelectorAll("#heat .tile").forEach(d=>{
+    const id=d.dataset.id,c=counts[id],v=c/max;
+    d.style.setProperty("--v",(c?(v>.5?.72+.28*(v-.5)*2:.08+.3*v*2):0).toFixed(3));
+    d.classList.toggle("hot",c>0&&v>.5);
+    d.querySelector(".num").textContent=c;
+    d.querySelector(".pct").textContent=n?Math.round(c/n*100)+"%":"";
+    d.classList.toggle("mine",!!mine&&mine.picks.includes(id));
+    if(S.loaded&&S.prev[id]!==undefined&&S.prev[id]!==c&&!S.prevFilterChanged){
+      d.classList.remove("flash");void d.offsetWidth;d.classList.add("flash");
+    }
+  });
+  const parts=[];
+  if(S.f.lob)parts.push(LOBS.find(l=>l.id===S.f.lob).name);
+  if(S.f.type)parts.push(TYPES.find(t=>t.id===S.f.type).name+" firms");
+  const fname=parts.length?parts.join(", "):"everyone";
+  $("legend").textContent=n?`Stronger color means more picks. Showing ${fname}: ${n} ${n===1?"response":"responses"}.`:(parts.length?`No responses from ${fname} yet.`:"Tiles fill with color as lineups come in.");
+
+  const ranked=Object.values(CATALOG).filter(it=>counts[it.id]).sort((a,b)=>counts[b.id]-counts[a.id]||b.cost-a.cost||a.id.localeCompare(b.id));
+  const rank=$("rank");rank.textContent="";
+  ranked.forEach(it=>{
+    const li=el("li");
+    li.append(el("span","c",it.id),el("span",null,it.title),el("span","n",counts[it.id]));
+    const tr=el("span","track"),i=el("i");i.style.width=(n?counts[it.id]/n*100:0)+"%";tr.append(i);li.append(tr);
+    rank.append(li);
+  });
+  $("rankEmpty").hidden=ranked.length>0;
+
+  const spend={};PILLARS.forEach(p=>spend[p.id]=0);
+  Object.values(CATALOG).forEach(it=>spend[it.pillar]+=counts[it.id]*it.cost);
+  const allDollars=Object.values(spend).reduce((a,b)=>a+b,0);
+  document.querySelectorAll("#spend>div").forEach(r=>{
+    const s=spend[r.dataset.p];
+    r.querySelector(".n").textContent=money(s)+(allDollars?` · ${Math.round(s/allDollars*100)}%`:"");
+    r.querySelector(".track i").style.width=(allDollars?s/allDollars*100:0)+"%";
+  });
+  S.prev=counts;S.prevFilterChanged=false;
+}
+
+/* ---------- data: one interface, two backends ---------- */
+function onData(){
+  const mine=S.votes[S.myId];
+  if(mine&&!S.dirty){
+    const c=cleanVote(mine);
+    if(c){S.type=c.type;S.lob=c.lob;S.picks=new Set(c.picks)}
+  }else if(!mine&&!S.dirty&&S.submitted){
+    S.type=null;S.lob=null;S.picks=new Set();S.submitted=false;$("thanks").hidden=true;
+  }
+  paintVote();paintResults();S.loaded=true;
+}
+function setConn(live,text){$("conn").classList.toggle("live",live);$("connText").textContent=text}
+
+const serverStore={
+  token(){
+    let t=null;
+    try{t=localStorage.getItem("lineup_voter")}catch(e){}
+    if(!t){
+      const a=crypto.getRandomValues(new Uint8Array(18));
+      t=[...a].map(x=>x.toString(16).padStart(2,"0")).join("");
+      try{localStorage.setItem("lineup_voter",t)}catch(e){}
+    }
+    return t;
+  },
+  async post(path,body){
+    const r=await fetch(path,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(j.error||"Your lineup didn't send. Tap Submit to try again.");
+    return j;
+  },
+  async start(){
+    this.voter=this.token();
+    const es=new EventSource("/api/stream");
+    es.addEventListener("init",e=>{S.votes=JSON.parse(e.data);setConn(true,"Live");onData()});
+    es.addEventListener("vote",e=>{const d=JSON.parse(e.data);S.votes[d.id]=d.vote;onData()});
+    es.addEventListener("reset",()=>{S.votes={};onData()});
+    es.onerror=()=>setConn(false,"Reconnecting");
+    try{
+      const me=await this.post("/api/me",{voter:this.voter});
+      S.myId=me.id;
+      onData();
+    }catch(e){}
+  },
+  async submit(v){
+    const r=await this.post("/api/vote",{voter:this.voter,...v});
+    S.myId=r.id;S.votes[r.id]={type:v.type,lob:v.lob,picks:v.picks};onData();
+  },
+};
+const dbStore={
+  async start(){
+    const use=window.claude&&window.claude.use;
+    this.db=use?await window.claude.use("db"):null;
+    this.user=use?await window.claude.use("user"):null;
+    if(!this.db){
+      S.canVote=false;setConn(false,"Offline");
+      notice("Sign in to claude.ai to see and add responses on this copy of the survey.");
+      paintVote();paintResults();return;
+    }
+    S.myId=this.user?await this.user.id():null;
+    if(this.user&&await this.user.can("data.write")===false){
+      S.canVote=false;
+      notice("Your access lets you view results but not vote. Ask the organizer for Contributor access.");
+    }
+    const t=setTimeout(()=>setConn(false,"Can't reach results yet"),10000);
+    this.db.collection("votes").limit(1000).onSnapshot(snap=>{
+      const v={};snap.docs.forEach(d=>{v[d.id]=d.data()});S.votes=v;
+      if(!snap.metadata.fromCache){clearTimeout(t);setConn(true,"Live")}
+      onData();
+    },()=>{clearTimeout(t);setConn(false,"Results unavailable")});
+  },
+  async submit(v){
+    if(!this.db||!S.myId)throw {code:"no_identity"};
+    const at=new Date().toISOString();
+    await this.db.doc("votes/"+S.myId).set({type:v.type,lob:v.lob,picks:v.picks,at});
+  },
+};
+const store=window.__SERVER_MODE__?serverStore:dbStore;
+
+/* ---------- routing ---------- */
+let wake=null;
+function route(){
+  const results=location.hash==="#results";
+  $("viewVote").hidden=results;$("viewResults").hidden=!results;
+  $("tabVote").toggleAttribute("aria-current",false);$("tabResults").toggleAttribute("aria-current",false);
+  (results?$("tabResults"):$("tabVote")).setAttribute("aria-current","page");
+  window.scrollTo(0,0);
+  if(results&&navigator.wakeLock&&!wake){
+    navigator.wakeLock.request("screen").then(w=>{wake=w;w.addEventListener("release",()=>{wake=null})}).catch(()=>{});
+  }
+}
+window.addEventListener("hashchange",route);
+
+buildVote();buildResults();route();paintVote();paintResults();
+store.start();
+</script>

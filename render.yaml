@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: lineup-survey
+    runtime: docker
+    plan: starter   # Persistent disks need a paid plan. Free instances lose votes on restart.
+    healthCheckPath: /healthz
+    envVars:
+      - key: ADMIN_KEY
+        generateValue: true
+    disk:
+      name: votes
+      mountPath: /data
+      sizeGB: 1
